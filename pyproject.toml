@@ -1,7 +1,7 @@
 [tool.poetry]
 name = "mega-market"
 version = "0.1.0"
-description = ""
+description = "Yandex Backend Development School task."
 authors = ["Kirill Lapushinskiy <kirilllapushinskiy@yahoo.com>"]
 
 [tool.poetry.dependencies]
@@ -9,6 +9,8 @@ python = "^3.10"
 fastapi = "^0.78.0"
 
 [tool.poetry.dev-dependencies]
+uvicorn = {extras = ["standard"], version = "^0.17.6"}
+pytest = "^7.1.2"
 
 [build-system]
 requires = ["poetry-core>=1.0.0"]
