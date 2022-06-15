@@ -5,7 +5,7 @@ from fastapi import APIRouter, Query
 from fastapi.params import Path
 from fastapi.responses import Response
 
-import schemas
+from market.api import schemas
 
 router = APIRouter()
 
