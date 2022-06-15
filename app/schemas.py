@@ -45,3 +45,16 @@ class ShopUnit(BaseModel):
 class Error(BaseModel):
     code: int
     message: str
+
+
+class ShopUnitStatisticUnit(BaseModel):
+    id: UUID
+    name: str
+    parentId: Optional[UUID]
+    type: ShopUnitType
+    price: Optional[int]
+    date: datetime
+
+
+class ShopUnitStatisticResponse(BaseModel):
+    items: list[ShopUnitStatisticUnit]

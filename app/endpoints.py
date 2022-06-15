@@ -1,3 +1,4 @@
+from datetime import datetime
 from uuid import UUID
 
 from fastapi import APIRouter
@@ -23,4 +24,9 @@ async def delete(unit_id: UUID = Path(..., alias='id')):
 
 @router.get("/nodes/{id}", response_model=schemas.ShopUnit)
 async def nodes(unit_id: UUID = Path(..., alias='id')):
+    ...
+
+
+@router.get("/sales", response_model=schemas.ShopUnitStatisticResponse)
+async def sales(date: datetime):
     ...
