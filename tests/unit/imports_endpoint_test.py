@@ -105,3 +105,68 @@ class TestValidRequestsToImportsEndpoint:
             }
         )
         assert response.status_code == 200
+
+
+class TestInvalidRequestsToImportsEndpoint:
+    def test_non_uuid_id(self, endpoint, url_fixture):
+        response = requests.post(
+            url_fixture(endpoint),
+            json={
+                "items": [
+                    {
+                        "type": "CATEGORY",
+                        "name": "Товары",
+                        "id": "bbdd-47d3-ad8f",
+                        "parentId": None
+                    }
+                ],
+                "updateDate": "2022-02-01T12:00:00.000Z"
+            }
+        )
+        assert response.status_code == 400
+        assert response.json() == {
+            "code": 400,
+            "message": "Validation Failed"
+        }
+
+    def test_int_id(self, endpoint, url_fixture):
+        response = requests.post(
+            url_fixture(endpoint),
+            json={
+                "items": [
+                    {
+                        "type": "CATEGORY",
+                        "name": "Товары",
+                        "id": 1000,
+                        "parentId": None
+                    }
+                ],
+                "updateDate": "2022-02-01T12:00:00.000Z"
+            }
+        )
+        assert response.status_code == 400
+        assert response.json() == {
+            "code": 400,
+            "message": "Validation Failed"
+        }
+
+    def test_invalid_type(self, endpoint, url_fixture):
+        response = requests.post(
+            url_fixture(endpoint),
+            json={
+                "items": [
+                    {
+                        "type": "SOMETHING",
+                        "name": "Товары",
+                        "id": 1000,
+                        "parentId": None
+                    }
+                ],
+                "updateDate": "2022-02-01T12:00:00.000Z"
+            }
+        )
+        assert response.status_code == 400
+        assert response.json() == {
+            "code": 400,
+            "message": "Validation Failed"
+        }
