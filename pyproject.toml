@@ -2,15 +2,17 @@
 name = "mega-market"
 version = "0.1.0"
 description = "Yandex Backend Development School task."
-authors = ["Kirill Lapushinskiy <kirilllapushinskiy@yahoo.com>"]
+authors = ["Kirill Lapushinskiy <kirill@lapushinskiy.ru>"]
 
 [tool.poetry.dependencies]
 python = "^3.10"
 fastapi = "^0.78.0"
+uvicorn = {extras = ["standard"], version = "^0.17.6"}
+SQLAlchemy = {extras = ["asyncio"], version = "^1.4.37"}
 
 [tool.poetry.dev-dependencies]
-uvicorn = {extras = ["standard"], version = "^0.17.6"}
 pytest = "^7.1.2"
+requests = "^2.28.0"
 
 [build-system]
 requires = ["poetry-core>=1.0.0"]
