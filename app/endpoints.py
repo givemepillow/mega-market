@@ -19,3 +19,8 @@ async def imports(shop_unit: schemas.ShopUnitImportRequest):
 async def delete(unit_id: UUID = Path(..., alias='id')):
     ...
     return Response(status_code=200)
+
+
+@router.get("/nodes/{id}", response_model=schemas.ShopUnit)
+async def nodes(unit_id: UUID = Path(..., alias='id')):
+    ...
