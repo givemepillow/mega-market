@@ -1,5 +1,3 @@
-from __future__ import annotations
-
 from pydantic import BaseModel
 from datetime import datetime
 from enum import Enum
@@ -28,10 +26,6 @@ class ShopUnitImportRequest(BaseModel):
     updateDate: datetime
 
 
-class AbstractShopUnit(BaseModel):
-    pass
-
-
 class ShopUnit(BaseModel):
     id: UUID
     name: str
@@ -39,7 +33,7 @@ class ShopUnit(BaseModel):
     parentId: Optional[UUID]
     type: ShopUnitType
     price: Optional[int]
-    children: Optional[list[ShopUnit]]
+    children: Optional[list['ShopUnit']]
 
 
 class Error(BaseModel):

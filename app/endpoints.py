@@ -1,7 +1,7 @@
 from datetime import datetime
 from uuid import UUID
 
-from fastapi import APIRouter
+from fastapi import APIRouter, Query
 from fastapi.params import Path
 from fastapi.responses import Response
 
@@ -29,4 +29,13 @@ async def nodes(unit_id: UUID = Path(..., alias='id')):
 
 @router.get("/sales", response_model=schemas.ShopUnitStatisticResponse)
 async def sales(date: datetime):
+    ...
+
+
+@router.get("/node/{id}/statistic", response_model=schemas.ShopUnitStatisticResponse)
+async def statistic(
+        unit_id: UUID = Path(alias='id'),
+        dateStart: datetime = Query(None),
+        dateEnd: datetime = Query(None)
+):
     ...
