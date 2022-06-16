@@ -1,8 +1,6 @@
 import pytest
-from fastapi.testclient import TestClient
-from market.api.main import app
 
 
-@pytest.fixture(scope='class')
-def client():
-    return TestClient(app)
+@pytest.fixture
+def host():
+    return 'http://127.0.0.1:8000'
