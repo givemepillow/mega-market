@@ -35,7 +35,7 @@ async def sales(date: datetime):
 @router.get("/node/{id}/statistic", response_model=schemas.ShopUnitStatisticResponse)
 async def statistic(
         unit_id: UUID = Path(alias='id'),
-        dateStart: datetime = Query(None),
-        dateEnd: datetime = Query(None)
+        date_start: datetime = Query(None, alias='dateStart'),
+        date_end: datetime = Query(None, alias='dateEnd')
 ):
     ...

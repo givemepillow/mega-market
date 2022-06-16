@@ -1,4 +1,4 @@
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 from datetime import datetime
 from enum import Enum
 from typing import Optional
@@ -12,10 +12,10 @@ class ShopUnitType(str, Enum):
 
 class ShopUnitImport(BaseModel):
     id: UUID
-    parentId: Optional[UUID]
-    name: str
+    parent_id: Optional[UUID] = Field(alias='parentId')
+    name: str = Field(min_length=1)
     type: ShopUnitType
-    price: Optional[int]
+    price: Optional[int] = Field(gt=-1)
 
     class Config:
         use_enum_values = True
@@ -23,16 +23,16 @@ class ShopUnitImport(BaseModel):
 
 class ShopUnitImportRequest(BaseModel):
     items: list[ShopUnitImport]
-    updateDate: datetime
+    update_date: datetime = Field(alias='updateDate')
 
 
 class ShopUnit(BaseModel):
     id: UUID
-    name: str
+    name: str = Field(min_length=1)
     date: datetime
-    parentId: Optional[UUID]
+    parent_id: Optional[UUID] = Field(alias='parentId')
     type: ShopUnitType
-    price: Optional[int]
+    price: Optional[int] = Field(gt=-1)
     children: Optional[list['ShopUnit']]
 
 
@@ -43,10 +43,10 @@ class Error(BaseModel):
 
 class ShopUnitStatisticUnit(BaseModel):
     id: UUID
-    name: str
-    parentId: Optional[UUID]
+    name: str = Field(min_length=1)
+    parent_id: Optional[UUID] = Field(alias='parentId')
     type: ShopUnitType
-    price: Optional[int]
+    price: Optional[int] = Field(gt=-1)
     date: datetime
 
 
