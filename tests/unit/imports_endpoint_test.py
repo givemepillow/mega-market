@@ -9,9 +9,9 @@ def endpoint():
 
 class TestValidRequestsToImportsEndpoint:
 
-    def test_valid_post_1(self, endpoint, url_fixture):
-        response = requests.post(
-            url_fixture(endpoint),
+    def test_valid_post_1(self, endpoint, client):
+        response = client.post(
+            endpoint,
             json={
                 "items": [
                     {
@@ -26,9 +26,9 @@ class TestValidRequestsToImportsEndpoint:
         )
         assert response.status_code == 200
 
-    def test_valid_post_2(self, endpoint, url_fixture):
-        response = requests.post(
-            url_fixture(endpoint),
+    def test_valid_post_2(self, endpoint, client):
+        response = client.post(
+            endpoint,
             json={
                 "items": [
                     {
@@ -57,9 +57,9 @@ class TestValidRequestsToImportsEndpoint:
         )
         assert response.status_code == 200
 
-    def test_valid_post_3(self, endpoint, url_fixture):
-        response = requests.post(
-            url_fixture(endpoint),
+    def test_valid_post_3(self, endpoint, client):
+        response = client.post(
+            endpoint,
             json={
                 "items": [
                     {
@@ -88,9 +88,9 @@ class TestValidRequestsToImportsEndpoint:
         )
         assert response.status_code == 200
 
-    def test_valid_post_4(self, endpoint, url_fixture):
-        response = requests.post(
-            url_fixture(endpoint),
+    def test_valid_post_4(self, endpoint, client):
+        response = client.post(
+            endpoint,
             json={
                 "items": [
                     {
@@ -101,16 +101,16 @@ class TestValidRequestsToImportsEndpoint:
                         "price": 69999
                     }
                 ],
-                "updateDate": "2022-02-03T15:00:00.000Z"
+                "updateDate": "2022-06-13T03:06:22+00:00"
             }
         )
         assert response.status_code == 200
 
 
 class TestInvalidRequestsToImportsEndpoint:
-    def test_non_uuid_id(self, endpoint, url_fixture):
-        response = requests.post(
-            url_fixture(endpoint),
+    def test_non_uuid_id(self, endpoint, client):
+        response = client.post(
+            endpoint,
             json={
                 "items": [
                     {
@@ -129,9 +129,9 @@ class TestInvalidRequestsToImportsEndpoint:
             "message": "Validation Failed"
         }
 
-    def test_int_id(self, endpoint, url_fixture):
-        response = requests.post(
-            url_fixture(endpoint),
+    def test_int_id(self, endpoint, client):
+        response = client.post(
+            endpoint,
             json={
                 "items": [
                     {
@@ -150,9 +150,9 @@ class TestInvalidRequestsToImportsEndpoint:
             "message": "Validation Failed"
         }
 
-    def test_invalid_type(self, endpoint, url_fixture):
-        response = requests.post(
-            url_fixture(endpoint),
+    def test_invalid_type(self, endpoint, client):
+        response = client.post(
+            endpoint,
             json={
                 "items": [
                     {
