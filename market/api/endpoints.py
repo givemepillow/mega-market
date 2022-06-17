@@ -5,14 +5,14 @@ from fastapi import APIRouter, Query
 from fastapi.params import Path
 from fastapi.responses import Response
 
-from market.api import schemas
+from market.api import schemas, handlers
 
 router = APIRouter()
 
 
 @router.post("/imports")
-async def imports(shop_unit: schemas.ShopUnitImportRequest):
-    ...
+async def imports(shop_unit_import: schemas.ShopUnitImportRequest):
+    await handlers.imports.handle(shop_unit_import)
     return Response(status_code=200)
 
 
