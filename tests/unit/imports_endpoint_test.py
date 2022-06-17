@@ -437,3 +437,54 @@ class TestInvalidRequestsToImportsEndpoint:
             "code": 400,
             "message": "Validation Failed"
         }
+
+    def test_empty_items(self, endpoint):
+        response = requests.post(
+            endpoint,
+            json={
+                "items": [],
+                "updateDate": "2022-02-02T12:00:00.000Z"
+            },
+        )
+        assert response.status_code == 400
+        assert response.json() == {
+            "code": 400,
+            "message": "Validation Failed"
+        }
+
+    def test_non_category_parent(self, endpoint):
+        response = requests.post(
+            endpoint,
+            json={
+                "items": [
+                    {
+                        "type": "OFFER",
+                        "name": "Notebook Asus ROG",
+                        "id": "394555d9-9e93-4aea-bcf9-28580b9dee3c",
+                        "price": 114000
+                    }
+                ],
+                "updateDate": "2022-10-02T12:00:00.000Z"
+            },
+        )
+        assert response.status_code == 200
+        response = requests.post(
+            endpoint,
+            json={
+                "items": [
+                    {
+                        "type": "OFFER",
+                        "name": "Notebook Asus ROG II",
+                        "id": "88f5e2ac-fe01-4a63-ab58-b7179be181ed",
+                        "parentId": "394555d9-9e93-4aea-bcf9-28580b9dee3c",
+                        "price": 114000
+                    }
+                ],
+                "updateDate": "2022-10-02T12:00:00.000Z"
+            },
+        )
+        assert response.status_code == 400
+        assert response.json() == {
+            "code": 400,
+            "message": "Validation Failed"
+        }
