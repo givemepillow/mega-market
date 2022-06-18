@@ -20,12 +20,13 @@ class ShopUnit(Base):
     __tablename__ = "shop_units"
     uuid = Column(UUID(as_uuid=True), primary_key=True)
     type = Column(Enum(schemas.ShopUnitType), nullable=False)
+    parent_id = Column(UUID(as_uuid=True), ForeignKey("categories.uuid", ondelete="CASCADE"), nullable=True)
 
 
 class Category(Base):
     __tablename__ = "categories"
-    uuid = Column(UUID(as_uuid=True), ForeignKey("shop_units.uuid", ondelete="CASCADE"), primary_key=True)
-    parent_id = Column(UUID(as_uuid=True), ForeignKey("categories.uuid", ondelete="CASCADE"), nullable=True, )
+    uuid = Column(UUID(as_uuid=True), primary_key=True)
+    parent_id = Column(UUID(as_uuid=True), ForeignKey("categories.uuid", ondelete="CASCADE"), nullable=True)
     name = Column(String(100), nullable=False)
     date = Column(DateTime(timezone=True), server_default=func.now())
 
@@ -34,7 +35,7 @@ class Category(Base):
 
 class Offer(Base):
     __tablename__ = "offers"
-    uuid = Column(UUID(as_uuid=True), ForeignKey("shop_units.uuid", ondelete="CASCADE"), primary_key=True)
+    uuid = Column(UUID(as_uuid=True), primary_key=True)
     parent_id = Column(UUID(as_uuid=True), ForeignKey("categories.uuid", ondelete="CASCADE"), nullable=True)
     name = Column(String(100), nullable=False)
     date = Column(DateTime(timezone=True), server_default=func.now())
