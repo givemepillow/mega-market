@@ -106,6 +106,99 @@ class TestValidRequestsToImportsEndpoint:
         )
         assert response.status_code == 200
 
+    def test_import_offer_and_then_offer_category_in_same_request(self, endpoint):
+        response = requests.post(
+            endpoint,
+            json={
+                "items": [
+                    {
+                        "type": "OFFER",
+                        "name": "Teapot 2.0",
+                        "id": "918d241a-1c48-4125-a465-456bae2199bb",
+                        "parentId": "23ab4aac-63d1-4876-9c8d-bc3f113de4d3",
+                        "price": 1099
+                    },
+                    {
+                        "type": "CATEGORY",
+                        "name": "Teapots",
+                        "id": "23ab4aac-63d1-4876-9c8d-bc3f113de4d3",
+                    }
+                ],
+                "updateDate": "2022-11-13T03:06:22+00:00"
+            }
+        )
+        assert response.status_code == 200
+
+    def test_import_offer_and_then_category_category_in_same_request(self, endpoint):
+        response = requests.post(
+            endpoint,
+            json={
+                "items": [
+                    {
+                        "type": "CATEGORY",
+                        "name": "Extra Small teapots",
+                        "id": "adcd5045-c22f-4716-87e8-311b4b2b8c38",
+                        "parentId": "b492dc16-c399-4b4a-b111-9318e3e399e6",
+                    },
+                    {
+                        "type": "CATEGORY",
+                        "name": "Small teapots",
+                        "id": "b492dc16-c399-4b4a-b111-9318e3e399e6",
+                        "parentId": "17ecfdfa-8640-489d-ab24-fa91956728b8",
+                    },
+                    {
+                        "type": "CATEGORY",
+                        "name": "Teapots",
+                        "id": "17ecfdfa-8640-489d-ab24-fa91956728b8",
+                    }
+                ],
+                "updateDate": "2022-11-13T03:06:22+00:00"
+            }
+        )
+        assert response.status_code == 200
+
+    def test_import_offer_and_then_category_and_offer_category_in_same_request(self, endpoint):
+        response = requests.post(
+            endpoint,
+            json={
+                "items": [
+                    {
+                        "type": "CATEGORY",
+                        "name": "Extra Small teapots",
+                        "id": "5df4a525-406a-4580-ae26-f4577b903cda",
+                        "parentId": "a39697c3-1362-49f7-9442-6a31a9cffb1c",
+                    },
+                    {
+                        "type": "CATEGORY",
+                        "name": "Small teapots",
+                        "id": "a39697c3-1362-49f7-9442-6a31a9cffb1c",
+                        "parentId": "4a5609a1-c4bc-4970-94aa-3aea782cab87",
+                    },
+                    {
+                        "type": "CATEGORY",
+                        "name": "Teapots",
+                        "id": "4a5609a1-c4bc-4970-94aa-3aea782cab87",
+                    },
+                    {
+                        "type": "OFFER",
+                        "name": "Small Teapot",
+                        "id": "f3e69b87-5488-4d4a-b183-937e0d1a27ed",
+                        "parentId": "a39697c3-1362-49f7-9442-6a31a9cffb1c",
+                        "price": 1080
+                    },
+                    {
+                        "type": "OFFER",
+                        "name": "Extra Small teapot",
+                        "id": "724a4542-e7b0-4ae6-be38-30473bbe5122",
+                        "parentId": "5df4a525-406a-4580-ae26-f4577b903cda",
+                        "price": 900
+                    }
+                ],
+                "updateDate": "2022-11-13T03:06:22+00:00"
+            }
+        )
+        assert response.status_code == 200
+
 
 class TestInvalidRequestsToImportsEndpoint:
     def test_non_uuid_id(self, endpoint):

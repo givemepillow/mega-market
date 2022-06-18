@@ -17,8 +17,8 @@ async def imports(shop_unit_import: schemas.ShopUnitImportRequest):
 
 
 @router.delete("/delete/{id}")
-async def delete(unit_id: UUID = Path(..., alias='id')):
-    ...
+async def delete(unit_uuid: UUID = Path(..., alias='id')):
+    await handlers.delete.handle(unit_uuid)
     return Response(status_code=200)
 
 
