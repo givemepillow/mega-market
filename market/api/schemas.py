@@ -5,12 +5,21 @@ from typing import Optional
 from uuid import UUID
 
 
+class BaseModelConfig(BaseModel):
+    class Config:
+        allow_population_by_field_name = True
+
+        json_encoders = {
+            datetime: lambda dt: dt.isoformat(timespec='milliseconds').replace('+00:00', 'Z')
+        }
+
+
 class ShopUnitType(str, Enum):
     OFFER: str = 'OFFER'
     CATEGORY: str = 'CATEGORY'
 
 
-class ShopUnitImport(BaseModel):
+class ShopUnitImport(BaseModelConfig):
     id: UUID
     parent_id: Optional[UUID] = Field(alias='parentId')
     name: str = Field(min_length=1)
@@ -21,12 +30,12 @@ class ShopUnitImport(BaseModel):
         use_enum_values = True
 
 
-class ShopUnitImportRequest(BaseModel):
+class ShopUnitImportRequest(BaseModelConfig):
     items: list[ShopUnitImport]
     update_date: datetime = Field(alias='updateDate')
 
 
-class ShopUnit(BaseModel):
+class ShopUnit(BaseModelConfig):
     id: UUID
     name: str = Field(min_length=1)
     date: datetime
@@ -36,12 +45,7 @@ class ShopUnit(BaseModel):
     children: Optional[list['ShopUnit']]
 
 
-class Error(BaseModel):
-    code: int
-    message: str
-
-
-class ShopUnitStatisticUnit(BaseModel):
+class ShopUnitStatisticUnit(BaseModelConfig):
     id: UUID
     name: str = Field(min_length=1)
     parent_id: Optional[UUID] = Field(alias='parentId')
@@ -50,5 +54,5 @@ class ShopUnitStatisticUnit(BaseModel):
     date: datetime
 
 
-class ShopUnitStatisticResponse(BaseModel):
+class ShopUnitStatisticResponse(BaseModelConfig):
     items: list[ShopUnitStatisticUnit]
