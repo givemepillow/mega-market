@@ -1,3 +1,5 @@
+from uuid import UUID
+
 from sqlalchemy import select
 from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.exc import IntegrityError
@@ -6,6 +8,7 @@ from market.api import schemas
 from market.api.handlers.exceptions import ValidationFailed400
 from market.db.orm import Session
 from market.db import model
+from market.api.handlers import tools
 
 
 def prepare(unit_import: schemas.ShopUnitImportRequest) -> (list, list, list, dict):
@@ -14,7 +17,7 @@ def prepare(unit_import: schemas.ShopUnitImportRequest) -> (list, list, list, di
     разделяются на отдельные списки, создается общий список юнитов.
     Кроме того собирается словарь uuid-тип для того чтобы в функции handle,
     можно было проверить не изменяется ли тип уже существующего юнита.
-    :raise ValidationFailed400: в случае не валидных данный выбрасывается исключение.
+    :raise ValidationFailed400: в случае невалидных данный выбрасывается исключение.
     """
     if not unit_import.items:
         raise ValidationFailed400("empty list of units")
@@ -46,14 +49,49 @@ def prepare(unit_import: schemas.ShopUnitImportRequest) -> (list, list, list, di
                 'price': unit.price
             })
         units.append({'uuid': unit.id, 'type': unit.type, 'parent_id': unit.parent_id})
+    print(f"{types=}")
     return categorise, offers, units, types
+
+
+async def parents(units: list[dict], uuids: dict, session: Session) -> set[UUID]:
+    """
+    Находит все категории, которые необходимо обновить из-за вставки новых или
+    изменения уже существующих данных прямо или косвенно влияющих
+    на среднюю цену и дату родительских каталогов.
+    :param uuids: словарь со всеми импортируемыми uuid.
+    :param units: список словарей для вставки/обновления.
+    :param session: сессия БД.
+    :return: множество uuid всех категорий дата и средняя ценя которых подлежит обновлению.
+    """
+    updated_categories = set()
+    import_categories = {u for u, t in uuids.items() if t == schemas.ShopUnitType.CATEGORY}
+    # Добавление родительских категорий элементов импорта.
+    all_parents = {unit['parent_id'] for unit in units}
+    # Добавление родительских категорий элементов до импорта.
+    all_parents |= set((await session.execute(
+        select(model.ShopUnit.parent_id).
+        where(model.ShopUnit.uuid.in_(uuids))
+    )).scalars()) - {None}
+    for parent_uuid in all_parents:
+        while parent_uuid:
+            # Если данный каталог уже в множестве, то не имеет смысла искать его предков.
+            if parent_uuid in updated_categories:
+                break
+            updated_categories.add(parent_uuid)
+            # Получаем следующую категорию верхнего уровня.
+            parent_uuid = (await session.execute(
+                select(model.Category.parent_id).
+                where(model.Category.uuid == parent_uuid)
+            )).scalar()
+    updated_categories |= import_categories
+    updated_categories.discard(None)
+    return updated_categories
 
 
 async def handle(unit_import: schemas.ShopUnitImportRequest):
     """
     Вставка и валидация данных, полученных от пользователя, в рамках одной транзакции.
-    :raise ValidationFailed400:
-    :param unit_import:
+    :raise ValidationFailed400: выбрасывает исключение, если данные невалидны.
     """
     categorise, offers, units, types = prepare(unit_import)
     async with Session() as s:
@@ -77,16 +115,15 @@ async def handle(unit_import: schemas.ShopUnitImportRequest):
                             index_elements=['uuid'],
                             set_=category_insert_stmt.excluded
                         ))
-                    await s.execute(insert(model.CategoryHistory).values(categorise))
-                # Вставляем НОВЫЕ юниты.
-                # Вставка происходит ОБЯЗАТЕЛЬНО после категорий, иначе каталога юнита может
-                # ЕЩЁ НЕ БЫТЬ в базе данных в момент вставки его содержимого.
-                # (в случае, если в одной транзакции вставляются категории и их содержимое)
+                # Вставляем НОВЫЕ юниты. Вставка происходит ОБЯЗАТЕЛЬНО после категорий,
+                # иначе каталога юнита может ЕЩЁ НЕ БЫТЬ в базе данных.
+                unit_insert_stmt = insert(model.ShopUnit).values(units)
                 await s.execute(
-                    insert(model.ShopUnit).
-                    values(units).
-                    on_conflict_do_nothing(index_elements=['uuid'])  # Уже существующее не трогается.
-                )
+                    unit_insert_stmt.
+                    on_conflict_do_update(
+                        index_elements=['uuid'],
+                        set_=unit_insert_stmt.excluded
+                    ))
                 # Вставка/обновление товаров.
                 if offers:
                     offer_insert_stmt = insert(model.Offer).values(offers)
@@ -97,7 +134,21 @@ async def handle(unit_import: schemas.ShopUnitImportRequest):
                             set_=offer_insert_stmt.excluded
                         ))
                     await s.execute(insert(model.OffersHistory).values(offers))
-                # Исключения типа IntegrityError (или его наследники) возникают при ошибке целостности,
-                # а это означает, что данные пользователя невалидны.
-            except (IntegrityError, ValidationFailed400) as err:
+                parent_uuids = await parents(units, uuids=types, session=s)
+                updated_categories = (await s.execute(
+                    select(model.Category).
+                    where(model.Category.uuid.in_(parent_uuids))
+                )).scalars()
+                average_updates = []
+                for p in updated_categories:
+                    average_updates.append({
+                        '_uuid': p.uuid,
+                        'parent_id': p.parent_id,
+                        'name': p.name,
+                        'average_price': await tools.average_price(p, s),
+                        'date': unit_import.update_date,
+                    })
+                if average_updates:
+                    await tools.update_average_in_db(average_updates, s)
+            except IntegrityError as err:
                 raise ValidationFailed400(err)
