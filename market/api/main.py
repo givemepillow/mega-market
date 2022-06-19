@@ -57,8 +57,4 @@ async def not_found_exception_handler(request: Request, exc: ItemNotFound404):
 async def startup_event():
     async with Engine.begin() as connection:
         await connection.run_sync(Base.metadata.create_all)
-
-
-@app.on_event("shutdown")
-async def shutdown_event():
-    await Engine.dispose()
+        await Engine.dispose()

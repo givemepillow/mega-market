@@ -1,6 +1,6 @@
 from uuid import UUID
 
-from sqlalchemy import delete, and_, select
+from sqlalchemy import delete, and_
 
 from market.db.orm import Session
 from market.db import model
@@ -14,10 +14,10 @@ async def handle(unit_uuid: UUID):
     :param unit_uuid: uuid юнита подлежащего удалению.
     """
     async with Session() as s:
-        async with s.begin() as transaction:
+        async with s.begin():
             # Получаем тип удаляемого юнита и удаляем его из таблицы с типами shop_units.
             # Удалять нужно обязательно т.к. каскадное удаление для shop_units
-            # не сработает при удалении из товаров.
+            # не сработает при удалении из товаров и при отсутствии parent_id.
             result = await s.execute(
                 delete(model.ShopUnit).
                 where(model.ShopUnit.uuid == unit_uuid).
@@ -45,4 +45,3 @@ async def handle(unit_uuid: UUID):
                             model.Offer.uuid == unit_uuid
                         ))
                     )
-            await transaction.commit()
