@@ -3,7 +3,6 @@ from sqlalchemy import (
     Enum,
     DateTime,
     ForeignKey,
-    func,
     Integer,
     String
 )
@@ -28,9 +27,8 @@ class Category(Base):
     uuid = Column(UUID(as_uuid=True), primary_key=True)
     parent_id = Column(UUID(as_uuid=True), ForeignKey("categories.uuid", ondelete="CASCADE"), nullable=True)
     name = Column(String(100), nullable=False)
-    date = Column(DateTime(timezone=True), server_default=func.now())
-
-    history = relationship("CategoryHistory", foreign_keys="CategoryHistory.uuid")
+    date = Column(DateTime(timezone=True), nullable=False)
+    average_price = Column(Integer, nullable=True)
 
 
 class Offer(Base):
@@ -38,19 +36,18 @@ class Offer(Base):
     uuid = Column(UUID(as_uuid=True), primary_key=True)
     parent_id = Column(UUID(as_uuid=True), ForeignKey("categories.uuid", ondelete="CASCADE"), nullable=True)
     name = Column(String(100), nullable=False)
-    date = Column(DateTime(timezone=True), server_default=func.now())
+    date = Column(DateTime(timezone=True), nullable=False)
     price = Column(Integer, nullable=False)
-
-    history = relationship("OffersHistory", foreign_keys="OffersHistory.uuid")
 
 
 class CategoryHistory(Base):
     __tablename__ = "categories_history"
     id = Column(Integer, primary_key=True)
     uuid = Column(UUID(as_uuid=True), ForeignKey("categories.uuid", ondelete="CASCADE"), nullable=False)
-    parent_id = Column(UUID(as_uuid=True), ForeignKey("categories.uuid", ondelete="CASCADE"), nullable=True, )
+    parent_id = Column(UUID(as_uuid=True), ForeignKey("categories.uuid", ondelete="CASCADE"), nullable=True)
     name = Column(String(100), nullable=False)
-    date = Column(DateTime(timezone=True), server_default=func.now())
+    date = Column(DateTime(timezone=True), nullable=False)
+    average_price = Column(Integer, nullable=True)
 
 
 class OffersHistory(Base):
@@ -59,5 +56,5 @@ class OffersHistory(Base):
     uuid = Column(UUID(as_uuid=True), ForeignKey("offers.uuid", ondelete="CASCADE"), nullable=False)
     parent_id = Column(UUID(as_uuid=True), ForeignKey("categories.uuid", ondelete="CASCADE"), nullable=True)
     name = Column(String(100), nullable=False)
-    date = Column(DateTime(timezone=True), server_default=func.now())
+    date = Column(DateTime(timezone=True), nullable=False)
     price = Column(Integer, nullable=False)
