@@ -23,8 +23,8 @@ async def delete(uuid: UUID = Path(..., alias='id')):
 
 
 @router.get("/nodes/{id}", response_model=schemas.ShopUnit)
-async def nodes(unit_id: UUID = Path(..., alias='id')):
-    ...
+async def nodes(uuid: UUID = Path(..., alias='id')):
+    return await handlers.nodes.handle(uuid)
 
 
 @router.get("/sales", response_model=schemas.ShopUnitStatisticResponse)
