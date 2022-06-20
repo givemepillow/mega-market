@@ -1,4 +1,5 @@
-from typing import List
+from datetime import datetime
+from typing import Dict, Optional
 from uuid import UUID
 
 from sqlalchemy import select
@@ -9,7 +10,15 @@ from market.api import schemas
 from market.api.handlers import exceptions
 
 
-async def sub(category_uuid: UUID, node: schemas.ShopUnit, session: Session) -> List[schemas.ShopUnit]:
+def iso8601(date: datetime) -> str:
+    return date.isoformat(timespec='milliseconds').replace('+00:00', 'Z')
+
+
+def str_uuid_or_none(uuid: Optional[str]) -> Optional[str]:
+    return str(uuid) if uuid else None
+
+
+async def sub(category_uuid: UUID, session: Session) -> Dict:
     """
     Извлекает товары и подкатегории каталога собирает из них Pydantic-модели
     и присоединяет к родительской Pydantic-модели.
@@ -21,13 +30,13 @@ async def sub(category_uuid: UUID, node: schemas.ShopUnit, session: Session) -> 
         where(model.Category.parent_id == category_uuid)
     )).scalars()
     for c in subcategories:
-        node_categories.append(schemas.ShopUnit(
-            id=c.uuid,
-            type=schemas.ShopUnitType.CATEGORY,
+        node_categories.append(dict(
+            id=str(c.uuid),
+            type='CATEGORY',
             name=c.name,
-            parent_id=c.parent_id,
+            parentId=str_uuid_or_none(c.parent_id),
             price=c.average_price,
-            date=c.date,
+            date=iso8601(c.date),
             children=[]
         ))
     offers = (await session.execute(
@@ -35,17 +44,16 @@ async def sub(category_uuid: UUID, node: schemas.ShopUnit, session: Session) -> 
         where(model.Offer.parent_id == category_uuid)
     )).scalars()
     for o in offers:
-        node_offers.append(schemas.ShopUnit(
-            id=o.uuid,
-            type=schemas.ShopUnitType.OFFER,
+        node_offers.append(dict(
+            id=str(o.uuid),
+            type='OFFER',
             name=o.name,
-            parent_id=o.parent_id,
+            parentId=str_uuid_or_none(o.parent_id),
             price=o.price,
-            date=o.date,
+            date=iso8601(o.date),
+            children=None
         ))
-    node.children = node_offers + node_categories
-    node.children.sort(key=lambda unit: unit.date, reverse=True)
-    return node_categories
+    return node_offers, node_categories
 
 
 async def handle(unit_uuid: UUID) -> schemas.ShopUnit:
@@ -61,33 +69,35 @@ async def handle(unit_uuid: UUID) -> schemas.ShopUnit:
                     select(model.Offer).
                     where(model.Offer.uuid == unit_uuid)
                 )).scalar()
-                return schemas.ShopUnit(
-                    id=offer.uuid,
-                    type=schemas.ShopUnitType.OFFER,
+                return dict(
+                    id=str(offer.uuid),
+                    type='OFFER',
                     name=offer.name,
-                    parent_id=offer.parent_id,
+                    parent_id=str_uuid_or_none(offer.parent_id),
                     price=offer.price,
-                    date=offer.date
+                    date=iso8601(offer.date)
                 )
             else:
                 category = (await s.execute(
                     select(model.Category).
                     where(model.Category.uuid == unit_uuid)
                 )).scalar()
-                root = schemas.ShopUnit(
-                    id=category.uuid,
-                    type=schemas.ShopUnitType.CATEGORY,
+                root = dict(
+                    id=str(category.uuid),
+                    type='CATEGORY',
                     name=category.name,
-                    parent_id=category.parent_id,
+                    parentId=str_uuid_or_none(category.parent_id),
                     price=category.average_price,
-                    date=category.date,
+                    date=iso8601(category.date),
                     children=[]
                 )
                 # Обход дерева категорий через стек.
                 stack = [(category.uuid, root)]
                 while stack:
-                    uuid, node = stack.pop()
-                    categories = await sub(uuid, node, s)
+                    uuid, parent = stack.pop()
+                    offers, categories = await sub(uuid, s)
+                    parent['children'] = offers + categories
+                    parent['children'].sort(key=lambda x: x['date'], reverse=True)
                     for c in categories:
-                        stack.append((c.id, c))
+                        stack.append((c.get('id'), c))
                 return root

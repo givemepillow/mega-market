@@ -1,8 +1,9 @@
 from uuid import UUID
 
-from fastapi import APIRouter, Query
+from fastapi import APIRouter, Query, status
+from fastapi.encoders import jsonable_encoder
 from fastapi.params import Path
-from fastapi.responses import Response
+from fastapi.responses import Response, JSONResponse
 
 from market.api import schemas, handlers
 from market.api.handlers import tools
@@ -22,12 +23,17 @@ async def delete(uuid: UUID = Path(..., alias='id')):
     return Response(status_code=200)
 
 
-@router.get("/nodes/{id}", response_model=schemas.ShopUnit)
+@router.get("/nodes/{id}")
 async def nodes(uuid: UUID = Path(..., alias='id')):
-    return await handlers.nodes.handle(uuid)
+    # Возвращаем ответ без использования Pydantic т.к. у Pydantic возможно превышение
+    # лимита рекурсивных вызовов.
+    return JSONResponse(
+        status_code=status.HTTP_200_OK,
+        content=jsonable_encoder(await handlers.nodes.handle(uuid))
+    )
 
 
-@router.get("/sales", response_model=schemas.ShopUnitStatisticResponse)
+@router.get("/sales", )
 async def sales(current_datetime: str = Query(..., alias='date')):
     return await handlers.sales.handle(tools.to_datetime(current_datetime))
 
