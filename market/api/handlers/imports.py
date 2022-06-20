@@ -1,4 +1,6 @@
+from typing import List, Dict, Set, Tuple
 from uuid import UUID
+
 
 from sqlalchemy import select
 from sqlalchemy.dialects.postgresql import insert
@@ -11,7 +13,7 @@ from market.db import model
 from market.api.handlers import tools
 
 
-def prepare(unit_import: schemas.ShopUnitImportRequest) -> (list, list, list, dict):
+def prepare(unit_import: schemas.ShopUnitImportRequest) -> Tuple[List, List, List, Dict]:
     """
     Подготовка данных для вставки/обновления: категории и товары
     разделяются на отдельные списки, создается общий список юнитов.
@@ -49,11 +51,10 @@ def prepare(unit_import: schemas.ShopUnitImportRequest) -> (list, list, list, di
                 'price': unit.price
             })
         units.append({'uuid': unit.id, 'type': unit.type, 'parent_id': unit.parent_id})
-    print(f"{types=}")
     return categorise, offers, units, types
 
 
-async def parents(units: list[dict], uuids: dict, session: Session) -> set[UUID]:
+async def parents(units: List[Dict], uuids: Dict, session: Session) -> Set[UUID]:
     """
     Находит все категории, которые необходимо обновить из-за вставки новых или
     изменения уже существующих данных прямо или косвенно влияющих

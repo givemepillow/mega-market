@@ -1,4 +1,5 @@
 from datetime import datetime
+from typing import Optional, Dict
 
 from sqlalchemy import select, bindparam, update
 from sqlalchemy.dialects.postgresql import insert
@@ -19,7 +20,7 @@ def to_datetime(string: str) -> datetime:
         raise ValidationFailed400(f'incorrect date format "{string}"')
 
 
-async def average_price(category: model.Category, session: Session) -> int | None:
+async def average_price(category: model.Category, session: Session) -> Optional[int]:
     """
     Подсчитывает среднюю цену товара для каждой категории.
     Используется в handlers.imports и handlers.delete.
@@ -45,7 +46,7 @@ async def average_price(category: model.Category, session: Session) -> int | Non
     return int(price_sum / count) if count else None
 
 
-async def update_average_in_db(update_data: dict, session: Session):
+async def update_average_in_db(update_data: Dict, session: Session):
     """
     Вставляет и обновления данные обновлённых категорий из словаря.
     Используется в handlers.imports и handlers.delete.

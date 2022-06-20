@@ -5,7 +5,7 @@ description = "Yandex Backend Development School task."
 authors = ["Kirill Lapushinskiy <kirill@lapushinskiy.ru>"]
 
 [tool.poetry.dependencies]
-python = "^3.10"
+python = "^3.7"
 fastapi = "^0.78.0"
 uvicorn = {extras = ["standard"], version = "^0.17.6"}
 SQLAlchemy = {extras = ["asyncio"], version = "^1.4.37"}

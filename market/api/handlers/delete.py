@@ -20,7 +20,6 @@ async def update(parent_uuid: UUID, session: Session):
             select(model.Category).
             where(model.Category.uuid == parent_uuid)
         )).scalar()
-        cache = {}
         while parent:
             average_updates.append({
                 '_uuid': parent.uuid,

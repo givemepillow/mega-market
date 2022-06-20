@@ -1,3 +1,4 @@
+from typing import List
 from uuid import UUID
 
 from sqlalchemy import select
@@ -8,7 +9,7 @@ from market.api import schemas
 from market.api.handlers import exceptions
 
 
-async def sub(category_uuid: UUID, node: schemas.ShopUnit, session: Session) -> [schemas.ShopUnit]:
+async def sub(category_uuid: UUID, node: schemas.ShopUnit, session: Session) -> List[schemas.ShopUnit]:
     """
     Извлекает товары и подкатегории каталога собирает из них Pydantic-модели
     и присоединяет к родительской Pydantic-модели.

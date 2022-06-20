@@ -1,5 +1,3 @@
-import sys
-
 from fastapi import FastAPI, Request
 from fastapi.exceptions import RequestValidationError
 from loguru import logger
@@ -14,10 +12,6 @@ app = FastAPI()
 app.include_router(router, tags=['MEGA MARKET API'])
 
 logger.remove()
-logger.add(
-    sys.stderr,
-    format="<level>{level:}</level>: <green>{time:HH:mm:ss.SSS}</green> - <level>{message}</level>"
-)
 
 
 @app.exception_handler(RequestValidationError)

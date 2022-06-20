@@ -1,7 +1,7 @@
 from pydantic import BaseModel, Field
 from datetime import datetime
 from enum import Enum
-from typing import Optional
+from typing import Optional, List
 from uuid import UUID
 
 
@@ -31,7 +31,7 @@ class ShopUnitImport(BaseModelConfig):
 
 
 class ShopUnitImportRequest(BaseModelConfig):
-    items: list[ShopUnitImport]
+    items: List[ShopUnitImport]
     update_date: datetime = Field(alias='updateDate')
 
 
@@ -42,7 +42,7 @@ class ShopUnit(BaseModelConfig):
     parent_id: Optional[UUID] = Field(alias='parentId')
     type: ShopUnitType
     price: Optional[int] = Field(gt=-1)
-    children: Optional[list['ShopUnit']]
+    children: Optional[List['ShopUnit']]
 
 
 class ShopUnitStatisticUnit(BaseModelConfig):
@@ -55,4 +55,4 @@ class ShopUnitStatisticUnit(BaseModelConfig):
 
 
 class ShopUnitStatisticResponse(BaseModelConfig):
-    items: list[ShopUnitStatisticUnit]
+    items: List[ShopUnitStatisticUnit]
