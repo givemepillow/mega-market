@@ -84,7 +84,6 @@ async def handle(unit_uuid: UUID) -> schemas.ShopUnit:
                     children=[]
                 )
                 # Обход дерева категорий через стек.
-                # Стек используется чтобы не упереться в потолок рекурсивных вызовов.
                 stack = [(category.uuid, root)]
                 while stack:
                     uuid, node = stack.pop()

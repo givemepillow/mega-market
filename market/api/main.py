@@ -1,3 +1,5 @@
+import sys
+
 from fastapi import FastAPI, Request
 from fastapi.exceptions import RequestValidationError
 from loguru import logger
@@ -10,6 +12,9 @@ from market.api.handlers.exceptions import ValidationFailed400, ItemNotFound404
 
 app = FastAPI()
 app.include_router(router, tags=['MEGA MARKET API'])
+
+# Для построения дерева каталогов в Pydantic.
+sys.setrecursionlimit(10 ** 7)
 
 logger.remove()
 
