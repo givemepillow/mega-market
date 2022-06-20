@@ -1,4 +1,3 @@
-from datetime import datetime
 from uuid import UUID
 
 from fastapi import APIRouter, Query
@@ -6,6 +5,7 @@ from fastapi.params import Path
 from fastapi.responses import Response
 
 from market.api import schemas, handlers
+from market.api.handlers import tools
 
 router = APIRouter()
 
@@ -28,8 +28,8 @@ async def nodes(uuid: UUID = Path(..., alias='id')):
 
 
 @router.get("/sales", response_model=schemas.ShopUnitStatisticResponse)
-async def sales(date: datetime):
-    ...
+async def sales(current_datetime: str = Query(..., alias='date')):
+    return await handlers.sales.handle(tools.to_datetime(current_datetime))
 
 
 @router.get("/node/{id}/statistic", response_model=schemas.ShopUnitStatisticResponse)
