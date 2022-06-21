@@ -1,12 +1,58 @@
 from datetime import datetime
-from typing import Optional, Dict
+from typing import Optional, Dict, Union
 
-from sqlalchemy import select, bindparam, update
-from sqlalchemy.dialects.postgresql import insert
-from sqlalchemy.orm import Session
-
+from market.api import schemas
 from market.api.handlers.exceptions import ValidationFailed400
 from market.db import model
+
+
+def avg(total: Optional[int], number: int) -> int:
+    return int(total / number) if number else None
+
+
+def iso8601(date: datetime) -> str:
+    return date.isoformat(timespec='milliseconds').replace('+00:00', 'Z')
+
+
+def category_to_response_dict(category: model.Category) -> Dict:
+    return dict(
+        id=category.uuid,
+        type=schemas.ShopUnitType.CATEGORY,
+        name=category.name,
+        parentId=category.parent_id,
+        price=avg(category.total_price, category.offers_number),
+        date=iso8601(category.date),
+        children=[]
+    )
+
+
+def offer_to_response_dict(offer: model.Offer) -> Dict:
+    return dict(
+        id=offer.uuid,
+        name=offer.name,
+        parentId=offer.parent_id,
+        type=schemas.ShopUnitType.OFFER,
+        price=offer.price,
+        date=iso8601(offer.date),
+        children=None
+    )
+
+
+def unit_price(m: Union[model.Category, model.Base], unit_type: str) -> Optional[int]:
+    if unit_type == schemas.ShopUnitType.OFFER:
+        return m.price
+    return avg(m.total_price, m.offers_number)
+
+
+def stat_to_response_dict(m: Union[model.Category, model.Base], unit_type: str) -> Dict:
+    return dict(
+        id=m.uuid,
+        name=m.name,
+        parentId=m.parent_id,
+        type=unit_type,
+        price=unit_price(m, unit_type),
+        date=iso8601(m.date)
+    )
 
 
 def to_datetime(string: str) -> datetime:
@@ -18,49 +64,3 @@ def to_datetime(string: str) -> datetime:
         return datetime.fromisoformat(string.replace('Z', '+00:00'))
     except ValueError:
         raise ValidationFailed400(f'incorrect date format "{string}"')
-
-
-async def average_price(category: model.Category, session: Session) -> Optional[int]:
-    """
-    Подсчитывает среднюю цену товара для каждой категории.
-    Используется в handlers.imports и handlers.delete.
-    :param category: категория для которой будет произведён подсчёт.
-    :param session: сессия БД.
-    :return: средняя стоимость товаров категории.
-    """
-    price_sum, count = 0, 0
-    stack = [category]
-    while stack:
-        current_category = stack.pop()
-        # Добавляем в стек подкатегории.
-        stack += (await session.execute(
-            select(model.Category).where(model.Category.parent_id == current_category.uuid)
-        )).scalars() or []
-        # Товары текущей категории.
-        offers = (await session.execute(
-            select(model.Offer.price).where(model.Offer.parent_id == current_category.uuid)
-        )).scalars() or []
-        for p in offers:
-            price_sum += p
-            count += 1
-    return int(price_sum / count) if count else None
-
-
-async def update_average_in_db(update_data: Dict, session: Session):
-    """
-    Вставляет и обновления данные обновлённых категорий из словаря.
-    Используется в handlers.imports и handlers.delete.
-    """
-    await session.execute(insert(model.CategoryHistory).values(
-        uuid=bindparam('_uuid'),
-        average_price=bindparam('average_price'),
-        date=bindparam('date'),
-        parent_id=bindparam('parent_id'),
-        name=bindparam('name')
-    ), update_data)
-    await session.execute(
-        update(model.Category).
-        where(model.Category.uuid == bindparam('_uuid')).
-        values(date=bindparam('date'), average_price=bindparam('average_price')),
-        update_data
-    )

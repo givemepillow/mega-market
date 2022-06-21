@@ -1,5 +1,4 @@
-from datetime import datetime
-from typing import Dict, Optional
+from typing import Dict
 from uuid import UUID
 
 from sqlalchemy import select
@@ -7,56 +6,28 @@ from sqlalchemy import select
 from market.db.orm import Session
 from market.db import model
 from market.api import schemas
-from market.api.handlers import exceptions
+from market.api.handlers import exceptions, tools
 
 
-def iso8601(date: datetime) -> str:
-    return date.isoformat(timespec='milliseconds').replace('+00:00', 'Z')
-
-
-def str_uuid_or_none(uuid: Optional[str]) -> Optional[str]:
-    return str(uuid) if uuid else None
-
-
-async def sub(category_uuid: UUID, session: Session) -> Dict:
+async def sub(category_uuid: UUID, session: Session) -> (Dict, Dict):
     """
-    Извлекает товары и подкатегории каталога собирает из них Pydantic-модели
-    и присоединяет к родительской Pydantic-модели.
+    Извлекает товары и подкатегории каталога собирает из них списки словарей.
     :return: список полученных категорий.
     """
-    node_offers, node_categories = [], []
     subcategories = (await session.execute(
         select(model.Category).
         where(model.Category.parent_id == category_uuid)
     )).scalars()
-    for c in subcategories:
-        node_categories.append(dict(
-            id=str(c.uuid),
-            type='CATEGORY',
-            name=c.name,
-            parentId=str_uuid_or_none(c.parent_id),
-            price=c.average_price,
-            date=iso8601(c.date),
-            children=[]
-        ))
+    node_categories = [tools.category_to_response_dict(c) for c in subcategories]
     offers = (await session.execute(
         select(model.Offer).
         where(model.Offer.parent_id == category_uuid)
     )).scalars()
-    for o in offers:
-        node_offers.append(dict(
-            id=str(o.uuid),
-            type='OFFER',
-            name=o.name,
-            parentId=str_uuid_or_none(o.parent_id),
-            price=o.price,
-            date=iso8601(o.date),
-            children=None
-        ))
+    node_offers = [tools.offer_to_response_dict(o) for o in offers]
     return node_offers, node_categories
 
 
-async def handle(unit_uuid: UUID) -> schemas.ShopUnit:
+async def handle(unit_uuid: UUID) -> Dict:
     async with Session() as s:
         async with s.begin():
             unit_type = (await s.execute(
@@ -69,28 +40,13 @@ async def handle(unit_uuid: UUID) -> schemas.ShopUnit:
                     select(model.Offer).
                     where(model.Offer.uuid == unit_uuid)
                 )).scalar()
-                return dict(
-                    id=str(offer.uuid),
-                    type='OFFER',
-                    name=offer.name,
-                    parent_id=str_uuid_or_none(offer.parent_id),
-                    price=offer.price,
-                    date=iso8601(offer.date)
-                )
+                return tools.offer_to_response_dict(offer)
             else:
                 category = (await s.execute(
                     select(model.Category).
                     where(model.Category.uuid == unit_uuid)
                 )).scalar()
-                root = dict(
-                    id=str(category.uuid),
-                    type='CATEGORY',
-                    name=category.name,
-                    parentId=str_uuid_or_none(category.parent_id),
-                    price=category.average_price,
-                    date=iso8601(category.date),
-                    children=[]
-                )
+                root = tools.category_to_response_dict(category)
                 # Обход дерева категорий через стек.
                 stack = [(category.uuid, root)]
                 while stack:

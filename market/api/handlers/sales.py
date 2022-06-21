@@ -1,15 +1,16 @@
 from datetime import datetime, timedelta
+from typing import Dict
 
 from sqlalchemy import select
 
+from market.api.handlers import tools
 from market.db.orm import Session
 from market.db import model
-from market.api.schemas import ShopUnitStatisticResponse, ShopUnitStatisticUnit, ShopUnitType
 
 
-async def handle(current_datetime: datetime) -> ShopUnitStatisticResponse:
+async def handle(current_datetime: datetime) -> Dict:
     """
-    Возвращает товары, цена которых была обновлена за 24 ч до переданной даты.
+    Возвращает товары, цена которых была обновлена за 24 часа до переданной даты.
     """
     async with Session() as s:
         offers = (await s.execute(
@@ -18,13 +19,4 @@ async def handle(current_datetime: datetime) -> ShopUnitStatisticResponse:
                 current_datetime - timedelta(hours=24), current_datetime
             ))
         )).scalars()
-        return ShopUnitStatisticResponse(
-            items=[ShopUnitStatisticUnit(
-                id=o.uuid,
-                name=o.name,
-                parent_id=o.parent_id,
-                type=ShopUnitType.OFFER,
-                price=o.price,
-                date=o.date
-            ) for o in offers]
-        )
+        return dict(items=[tools.stat_to_response_dict(o, 'OFFER') for o in offers])

@@ -28,7 +28,8 @@ class Category(Base):
     parent_id = Column(UUID(as_uuid=True), ForeignKey("categories.uuid", ondelete="CASCADE"), nullable=True)
     name = Column(String(100), nullable=False)
     date = Column(DateTime(timezone=True), nullable=False)
-    average_price = Column(Integer, nullable=True)
+    total_price = Column(Integer, nullable=True)
+    offers_number = Column(Integer, nullable=False, default=0)
 
 
 class Offer(Base):
@@ -47,7 +48,8 @@ class CategoryHistory(Base):
     parent_id = Column(UUID(as_uuid=True), ForeignKey("categories.uuid", ondelete="CASCADE"), nullable=True)
     name = Column(String(100), nullable=False)
     date = Column(DateTime(timezone=True), nullable=False)
-    average_price = Column(Integer, nullable=True)
+    total_price = Column(Integer, nullable=True)
+    offers_number = Column(Integer, nullable=False, default=0)
 
 
 class OffersHistory(Base):

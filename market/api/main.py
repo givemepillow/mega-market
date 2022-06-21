@@ -11,7 +11,6 @@ from market.api.handlers.exceptions import ValidationFailed400, ItemNotFound404
 app = FastAPI()
 app.include_router(router, tags=['MEGA MARKET API'])
 
-
 logger.remove()
 
 

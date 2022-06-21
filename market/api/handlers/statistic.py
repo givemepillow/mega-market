@@ -3,10 +3,11 @@ from uuid import UUID
 
 from sqlalchemy import select, desc
 
+from market.api.handlers import tools
 from market.api.handlers.exceptions import ItemNotFound404
 from market.db.orm import Session
 from market.db import model
-from market.api.schemas import ShopUnitType, ShopUnitStatisticResponse, ShopUnitStatisticUnit
+from market.api.schemas import ShopUnitType
 
 
 def statement(unit_model: model.Base, start: datetime, end: datetime):
@@ -49,13 +50,4 @@ async def handle(uuid: UUID, start: datetime, end: datetime):
                     where(model.OffersHistory.uuid == uuid).
                     order_by(desc(model.OffersHistory.date))
                 )).scalars()
-        return ShopUnitStatisticResponse(
-            items=[ShopUnitStatisticUnit(
-                id=u.uuid,
-                name=u.name,
-                parent_id=u.parent_id,
-                type=unit_type,
-                price=u.price if unit_type == ShopUnitType.OFFER else u.average_price,
-                date=u.date
-            ) for u in history]
-        )
+        return dict(items=[tools.stat_to_response_dict(u, unit_type) for u in history])
