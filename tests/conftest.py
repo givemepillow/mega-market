@@ -14,3 +14,8 @@ def imports_endpoint(host):
 @pytest.fixture
 def delete_endpoint(host):
     return host + "/delete/"
+
+
+@pytest.fixture
+def nodes_endpoint(host):
+    return host + "/nodes/"
