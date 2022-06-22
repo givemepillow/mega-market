@@ -4,7 +4,7 @@ from uuid import UUID
 from sqlalchemy import select
 
 from market.db.orm import Session
-from market.db import model
+from market.db import model, crud
 from market.api import schemas
 from market.api.handlers import exceptions, tools
 
@@ -30,12 +30,10 @@ async def sub(category_uuid: UUID, session: Session) -> (Dict, Dict):
 async def handle(unit_uuid: UUID) -> Dict:
     async with Session() as s:
         async with s.begin():
-            unit_type = (await s.execute(
-                select(model.ShopUnit.type).
-                where(model.ShopUnit.uuid == unit_uuid))).scalar()
-            if unit_type is None:
+            unit = await crud.ShopUnit.get(unit_uuid, s)
+            if unit is None:
                 raise exceptions.ItemNotFound404(f'unit with "{unit_uuid}" does not exist')
-            if unit_type == schemas.ShopUnitType.OFFER:
+            if unit.type == schemas.ShopUnitType.OFFER:
                 offer = (await s.execute(
                     select(model.Offer).
                     where(model.Offer.uuid == unit_uuid)

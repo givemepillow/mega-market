@@ -6,7 +6,7 @@ from sqlalchemy import select, desc
 from market.api.handlers import tools
 from market.api.handlers.exceptions import ItemNotFound404
 from market.db.orm import Session
-from market.db import model
+from market.db import model, crud
 from market.api.schemas import ShopUnitType
 
 
@@ -31,14 +31,11 @@ async def handle(uuid: UUID, start: datetime, end: datetime):
     :raises ItemNotFound404 в случае если в БД не юнита с переданными uuid.
     """
     async with Session() as s:
-        unit_type = (await s.execute(
-            select(model.ShopUnit.type).
-            where(model.ShopUnit.uuid == uuid)
-        )).scalar()
-        if not unit_type:
+        unit = await crud.ShopUnit.get(uuid, s)
+        if not unit:
             raise ItemNotFound404(f'unit with uuid "{uuid}" does not exist')
         if datetime:
-            if unit_type == ShopUnitType.CATEGORY:
+            if unit.type == ShopUnitType.CATEGORY:
                 history = (await s.execute(
                     statement(model.CategoryHistory, start, end).
                     where(model.CategoryHistory.uuid == uuid).
@@ -50,4 +47,4 @@ async def handle(uuid: UUID, start: datetime, end: datetime):
                     where(model.OffersHistory.uuid == uuid).
                     order_by(desc(model.OffersHistory.date))
                 )).scalars()
-        return dict(items=[tools.stat_to_response_dict(u, unit_type) for u in history])
+        return dict(items=[tools.stat_to_response_dict(u, unit.type) for u in history])

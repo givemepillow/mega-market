@@ -3,7 +3,7 @@ from uuid import UUID
 from sqlalchemy import delete, and_, text
 
 from market.db.orm import Session
-from market.db import model
+from market.db import model, crud
 from market.api.handlers.exceptions import ItemNotFound404
 from market.api import schemas
 
@@ -18,11 +18,7 @@ async def handle(unit_uuid: UUID):
             # Получаем тип удаляемого юнита и удаляем его из таблицы с типами shop_units.
             # Удалять нужно обязательно т.к. каскадное удаление для shop_units
             # не сработает при удалении из товаров.
-            unit_type = (await s.execute(
-                delete(model.ShopUnit).
-                where(model.ShopUnit.uuid == unit_uuid).
-                returning(model.ShopUnit.type)
-            )).scalar()
+            unit_type = await crud.ShopUnit.delete(unit_uuid, s)
             # Если unit_type is None, то удаляемого юнита не существует.
             if not unit_type:
                 raise ItemNotFound404(f'unit with uuid "{unit_uuid}" does not exist')
