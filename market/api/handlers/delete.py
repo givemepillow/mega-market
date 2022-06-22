@@ -1,43 +1,11 @@
 from uuid import UUID
 
-from sqlalchemy import delete, and_, select, update
-from sqlalchemy.dialects.postgresql import insert
+from sqlalchemy import delete, and_, text
 
 from market.db.orm import Session
 from market.db import model
 from market.api.handlers.exceptions import ItemNotFound404
 from market.api import schemas
-
-
-async def update_parents(first_parent_uuid: UUID, deleted_total: int, deleted_number: int, session: Session):
-    update_uuids, updates = [], []
-    parent = (await session.execute(
-        select(model.Category).
-        where(model.Category.uuid == first_parent_uuid)
-    )).scalar()
-    while parent:
-        update_uuids.append(parent.uuid)
-        updates.append({
-            'uuid': parent.uuid,
-            'total_price': parent.total_price - deleted_total,
-            'offers_number': parent.offers_number - deleted_number,
-            'date': parent.date,
-            'parent_id': parent.parent_id,
-            'name': parent.name
-        })
-        # Получаем следующую категорию верхнего уровня.
-        parent = (await session.execute(
-            select(model.Category).
-            where(model.Category.uuid == parent.parent_id)
-        )).scalar()
-    await session.execute(
-        update(model.Category).
-        where(model.Category.uuid.in_(update_uuids)).
-        values(
-            total_price=model.Category.total_price - deleted_total,
-            offers_number=model.Category.offers_number - deleted_number
-        ))
-    await session.execute(insert(model.CategoryHistory).values(updates))
 
 
 async def handle(unit_uuid: UUID):
@@ -85,4 +53,24 @@ async def handle(unit_uuid: UUID):
                 deleted_number = 1
             if not parent_uuid:
                 return
-            await update_parents(parent_uuid, deleted_total, deleted_number, s)
+            stmt = text(
+                """
+                with recursive r as (
+                    select uuid, parent_id
+                    from categories
+                    where uuid = :_uuid
+                    UNION
+                    select c.uuid, c.parent_id
+                    from r
+                    join categories c on c.uuid = r.parent_id
+                ) update categories
+                  set total_price = total_price - :deleted_total,
+                      offers_number = offers_number - :deleted_number
+                  where uuid in (select uuid from r);
+                """
+            )
+            await (s.execute(stmt, {
+                '_uuid': parent_uuid,
+                'deleted_total': deleted_total,
+                'deleted_number': deleted_number
+            }))

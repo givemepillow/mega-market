@@ -2,7 +2,7 @@ from datetime import datetime
 from typing import List, Dict, Set, Tuple
 from uuid import UUID
 
-from sqlalchemy import select, func, update, bindparam
+from sqlalchemy import select, update, bindparam, text
 from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.exc import IntegrityError
 
@@ -68,10 +68,10 @@ async def parents(units: List[Dict], uuids: Dict, session: Session) -> Set[UUID]
     # Добавление родительских категорий элементов импорта.
     all_parents = {unit['parent_id'] for unit in units}
     # Добавление родительских категорий элементов до импорта.
-    all_parents |= set((await session.execute(
+    all_parents |= (set((await session.execute(
         select(model.ShopUnit.parent_id).
         where(model.ShopUnit.uuid.in_(uuids))
-    )).scalars()) - {None}
+    )).scalars()) - {None})
     for parent_uuid in all_parents:
         while parent_uuid:
             # Если данный каталог уже в множестве, то не имеет смысла искать его предков.
@@ -134,51 +134,6 @@ async def insert_imported_units(
         await session.execute(insert(model.OffersHistory).values(offers))
 
 
-async def update_categories_stats(parent_uuids: set, session: Session):
-    cache = {}
-    miss, strike = 0, 0
-    for target_uuid in parent_uuids:
-        stack = [target_uuid]
-        number, total = 0, 0
-        while stack:
-            current_parent = stack.pop()
-            if current_parent in cache:
-                strike += 1
-                number += cache[current_parent][0]
-                total += cache[current_parent][1]
-                continue
-            miss += 1
-            # Получаем товары каталога.
-            (current_number, current_total), = (await session.execute(
-                select(
-                    [
-                        func.count(model.Offer.uuid),
-                        func.sum(model.Offer.price)
-                    ]
-                ).
-                where(model.Offer.parent_id == current_parent)
-            )).all()
-            current_total = current_total or 0
-            total += current_total
-            number += current_number
-            # Получаем подкатегории.
-            sub_categories = (await session.execute(
-                select(model.Category.uuid, model.Category.offers_number, model.Category.total_price).
-                where(model.Category.parent_id == current_parent)
-            )).all()
-            if not sub_categories:
-                cache[current_parent] = (current_number, current_total)
-            else:
-                for sub_uuid, sub_number, sub_total in sub_categories:
-                    if sub_uuid not in parent_uuids:
-                        total += sub_total
-                        number += sub_number
-                    else:
-                        stack.append(sub_uuid)
-        cache[target_uuid] = (number, total)
-    return cache
-
-
 async def save_updated_stats(updated_stats: dict, update_date: datetime, session: Session):
     to_save = []
     updated_categories = (await session.execute(
@@ -227,7 +182,25 @@ async def handle(unit_import: schemas.ShopUnitImportRequest):
                 parent_uuids = await parents(units, uuids=types, session=s)
                 if not parent_uuids:
                     return
-                updated_stats = await update_categories_stats(parent_uuids, s)
+                stmt = text(
+                    """
+                    with recursive r as (
+                        select uuid
+                        from categories
+                        where uuid = :uuid
+                        UNION
+                        select c.uuid
+                        from r
+                        join categories c on c.parent_id = r.uuid
+                    ) select sum(o.price), count(1) from r join offers o on r.uuid = o.parent_id;
+                    """
+                )
+                updated_stats = {}
+                start = datetime.now()
+                for p in parent_uuids:
+                    (total, number), = (await s.execute(stmt, {'uuid': p})).all()
+                    updated_stats[p] = (number, total)
+                print(datetime.now() - start)
                 await save_updated_stats(updated_stats, unit_import.update_date, s)
             except IntegrityError as err:
                 raise ValidationFailed400(err)
