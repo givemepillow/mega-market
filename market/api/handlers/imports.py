@@ -12,6 +12,9 @@ from market.db.orm import Session
 from market.db import model
 
 
+MAX_ITEMS = 6000
+
+
 def prepare(unit_import: schemas.ShopUnitImportRequest) -> Tuple[List, List, List, Dict]:
     """
     Подготовка данных для вставки/обновления: категории и товары
@@ -23,7 +26,11 @@ def prepare(unit_import: schemas.ShopUnitImportRequest) -> Tuple[List, List, Lis
     if not unit_import.items:
         raise ValidationFailed400("empty list of units")
     categorise, offers, units, types = [], [], [], {}
+    quantity = 0
     for unit in unit_import.items:
+        if quantity > MAX_ITEMS:
+            raise ValidationFailed400("to many items")
+        quantity += 1
         # Проверка уникальности uuid в рамках запроса.
         if unit.id in types:
             raise ValidationFailed400("duplicate uuid in a single request")
@@ -72,19 +79,46 @@ async def parents(units: List[Dict], uuids: Dict, session: Session) -> Set[UUID]
         select(model.ShopUnit.parent_id).
         where(model.ShopUnit.uuid.in_(uuids))
     )).scalars()) - {None})
-    for parent_uuid in all_parents:
-        while parent_uuid:
-            # Если данный каталог уже в множестве, то не имеет смысла искать его предков.
-            if parent_uuid in updated_categories:
-                break
-            updated_categories.add(parent_uuid)
-            # Получаем следующую категорию верхнего уровня.
-            parent_uuid = (await session.execute(
-                select(model.Category.parent_id).
-                where(model.Category.uuid == parent_uuid)
-            )).scalar()
+    start = datetime.now()
+    stmt = text(
+        """
+        with recursive r as (
+            select uuid
+            from categories
+            where uuid in :uuids
+            UNION DISTINCT
+            select c.parent_id
+            from r
+            join categories c on c.uuid = r.uuid
+        ) select uuid from r;
+        """
+    )
+    ancestors = (await session.execute(
+        stmt.bindparams(bindparam('uuids', expanding=True)),
+        {'uuids': tuple(all_parents)}
+    )).scalars()
+    updated_categories.update(set(ancestors))
     updated_categories |= import_categories
     updated_categories.discard(None)
+    stmt = text(
+        """
+        with recursive r as (
+            select uuid, 0 as deep
+            from categories
+            where uuid in :uuids
+            UNION DISTINCT
+            select c.parent_id, r.deep + 1 as deep
+            from r
+            join categories c on c.uuid = r.uuid
+        ) select max(deep), count(1) from r;
+        """
+    )
+    (max_deep, to_be_updated), = (await session.execute(
+        stmt.bindparams(bindparam('uuids', expanding=True)),
+        {'uuids': tuple(all_parents)}
+    )).all()
+    print("find parents:", datetime.now() - start)
+    print(f"{max_deep=} {to_be_updated=}")
     return updated_categories
 
 
@@ -200,7 +234,7 @@ async def handle(unit_import: schemas.ShopUnitImportRequest):
                 for p in parent_uuids:
                     (total, number), = (await s.execute(stmt, {'uuid': p})).all()
                     updated_stats[p] = (number, total)
-                print(datetime.now() - start)
+                print("calculate:", datetime.now() - start)
                 await save_updated_stats(updated_stats, unit_import.update_date, s)
-            except IntegrityError as err:
-                raise ValidationFailed400(err)
+            except IntegrityError:
+                raise ValidationFailed400("db integrity error")
