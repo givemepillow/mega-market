@@ -211,30 +211,40 @@ async def handle(unit_import: schemas.ShopUnitImportRequest):
     categorise, offers, units, types = prepare(unit_import)
     async with Session() as s:
         async with s.begin():
+            # await s.connection(execution_options={'isolation_level': 'REPEATABLE READ'})
             try:
                 await insert_imported_units(categorise, offers, units, types, s)
                 parent_uuids = await parents(units, uuids=types, session=s)
                 if not parent_uuids:
                     return
+                start = datetime.now()
                 stmt = text(
                     """
                     with recursive r as (
-                        select uuid
+                        select uuid as root, uuid as crurent_uuid
                         from categories
-                        where uuid = :uuid
+                        where uuid in :uuids
                         UNION
-                        select c.uuid
+                        select r.root, c.uuid
                         from r
-                        join categories c on c.parent_id = r.uuid
-                    ) select sum(o.price), count(1) from r join offers o on r.uuid = o.parent_id;
+                        join categories c on c.parent_id = r.crurent_uuid
+                    ) select r.root, sum(o.price), count(1) from r
+                    join offers o on r.crurent_uuid = o.parent_id
+                    group by r.root;
                     """
                 )
+                updated_categories = (
+                    await s.execute(stmt.bindparams(
+                        bindparam('uuids', expanding=True)),
+                        {'uuids': tuple(parent_uuids)}
+                    )).all()
+
                 updated_stats = {}
-                start = datetime.now()
-                for p in parent_uuids:
-                    (total, number), = (await s.execute(stmt, {'uuid': p})).all()
-                    updated_stats[p] = (number, total)
+                for line in updated_categories:
+                    uuid, total, number = line
+                    updated_stats[uuid] = (number, total)
                 print("calculate:", datetime.now() - start)
-                await save_updated_stats(updated_stats, unit_import.update_date, s)
+                if updated_stats:
+                    await save_updated_stats(updated_stats, unit_import.update_date, s)
             except IntegrityError:
                 raise ValidationFailed400("db integrity error")
