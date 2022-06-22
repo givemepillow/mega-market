@@ -1,0 +1,74 @@
+version: '3.9'
+services:
+  api:
+    build: .
+    container_name: mega-market-api
+    image: mega-market:latest
+    environment:
+      DB_USER: "market_app"
+      DB_PASSWORD: "backend_school_2022"
+      DB_NAME: "market"
+      DB_HOST: "db"
+    ports:
+      - "80:80"
+    depends_on:
+      db:
+        condition: service_healthy
+    networks:
+      - mega-market-network
+    deploy:
+      resources:
+        limits:
+          memory: 1G
+    restart: always
+  db:
+    image: postgres:13.7
+    container_name: mega-market-db
+    environment:
+      POSTGRES_DB: "market"
+      POSTGRES_USER: "market_app"
+      POSTGRES_PASSWORD: "backend_school_2022"
+      PGDATA: "/var/lib/postgresql/data/pgdata"
+    command:
+      - "postgres"
+      - "-c"
+      - "max_connections=30"
+      - "-c"
+      - "shared_buffers=512MB"
+      - "-c"
+      - "work_mem=64MB"
+      - "-c"
+      - "maintenance_work_mem=256MB"
+      - "-c"
+      - "max_prepared_transactions=30"
+      - "-c"
+      - "random_page_cost=1.1"
+      - "-c"
+      - "temp_file_limit=5GB"
+      - "-c"
+      - "log_min_error_statement=INFO"
+      - "-c"
+      - "log_min_messages=FATAL"
+      - "-c"
+      - "log_statement=none"
+      - "-c"
+      - "log_destination=stderr"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U market_app -d market"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+      start_period: 7s
+    deploy:
+      resources:
+        limits:
+          memory: 1G
+    restart: always
+    volumes:
+      - ./data:/var/lib/postgresql/data
+    networks:
+      - mega-market-network
+
+networks:
+  mega-market-network:
+    driver: bridge
