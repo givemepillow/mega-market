@@ -196,3 +196,5 @@ def test_delete_and_update_offer_price(imports_endpoint, delete_endpoint, nodes_
         nodes_endpoint + "19a0a478-6a57-4f44-a2fe-0c21fb1746e9"
     )
     assert response.json() == expected_trees.test_delete_and_update_offer_price
+    response = requests.delete(delete_endpoint + "19a0a478-6a57-4f44-a2fe-0c21fb1746e9")
+    assert response.status_code == 200
