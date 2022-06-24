@@ -4,6 +4,8 @@ import expected_trees
 
 import requests
 
+from tests.unit.endpoints.difference import *
+
 
 def test_import_and_nodes(imports_endpoint, delete_endpoint, nodes_endpoint):
     response = requests.post(
@@ -130,16 +132,12 @@ def test_average_price(imports_endpoint, delete_endpoint, nodes_endpoint):
     response = requests.get(
         nodes_endpoint + "19a0a478-6a57-4f44-a2fe-0c21fb1746e9"
     )
-    assert response.json() == expected_trees.test_average_price
-
-
-def test_average_price_after_delete_offer(imports_endpoint, delete_endpoint, nodes_endpoint):
-    response = requests.delete(delete_endpoint + "cb45dfa2-f31c-4900-a119-a13dc4a8d27b")
-    assert response.status_code == 200
-    response = requests.get(
-        nodes_endpoint + "19a0a478-6a57-4f44-a2fe-0c21fb1746e9"
-    )
-    assert response.json() == expected_trees.test_average_price_after_delete_offer
+    data = response.json()
+    deep_sort_children(data)
+    deep_sort_children(expected_trees.test_average_price)
+    assert data == expected_trees.test_average_price
+    # response = requests.delete(delete_endpoint + '19a0a478-6a57-4f44-a2fe-0c21fb1746e9')
+    # assert response.status_code == 200
 
 
 def test_average_price_and_date_after_replace_category(imports_endpoint, delete_endpoint, nodes_endpoint):
@@ -158,17 +156,20 @@ def test_average_price_and_date_after_replace_category(imports_endpoint, delete_
                     "type": "OFFER",
                     "name": "Teapot 2 1",
                     "parentId": "fb53fa86-dd6f-4f30-b57c-579576b78384",
-                    "price": 600
+                    "price": 1900
                 }
             ],
-            "updateDate": "2022-06-21T01:41:40.716Z"
+            "updateDate": "2022-11-21T01:41:40.716Z"
         }
     )
     assert response.status_code == 200
     response = requests.get(
         nodes_endpoint + "19a0a478-6a57-4f44-a2fe-0c21fb1746e9"
     )
-    assert response.json() == expected_trees.test_average_price_and_date_after_replace_category
+    response_data = response.json()
+    deep_sort_children(response_data)
+    deep_sort_children(expected_trees.test_average_price_and_date_after_replace_category)
+    assert response_data == expected_trees.test_average_price_and_date_after_replace_category
 
 
 def test_delete_and_update_offer_price(imports_endpoint, delete_endpoint, nodes_endpoint):
@@ -184,15 +185,22 @@ def test_delete_and_update_offer_price(imports_endpoint, delete_endpoint, nodes_
                     "price": 0
                 }
             ],
-            "updateDate": "2022-06-21T01:56:40.716Z"
+            "updateDate": "2022-12-21T01:56:40.716Z"
         }
     )
     assert response.status_code == 200
-    response = requests.delete(delete_endpoint + "c0cd0e5c-89ee-4db3-9b40-1045abd42182")
+    response = requests.delete(delete_endpoint + "c0cd0e5c-89ee-4db3-9b40-1045abd42182")  # 2 1
     assert response.status_code == 200
-    response = requests.delete(delete_endpoint + "cb45dfa2-f31c-4900-a109-a13dc4a8d27b")
+    response = requests.delete(delete_endpoint + "cb45dfa2-f31c-4900-a109-a13dc4a8d27b")  # 2 2
+    assert response.status_code == 200
+    response = requests.delete(delete_endpoint + "cb45dfa2-f31c-4900-a119-a13dc4a8d27b")  # 2 3
     assert response.status_code == 200
     response = requests.get(
         nodes_endpoint + "19a0a478-6a57-4f44-a2fe-0c21fb1746e9"
     )
-    assert response.json() == expected_trees.test_delete_and_update_offer_price
+    response_data = response.json()
+    deep_sort_children(response_data)
+    deep_sort_children(expected_trees.test_delete_and_update_offer_price)
+    assert response_data == expected_trees.test_delete_and_update_offer_price
+    response = requests.delete(delete_endpoint + "19a0a478-6a57-4f44-a2fe-0c21fb1746e9")
+    assert response.status_code == 200

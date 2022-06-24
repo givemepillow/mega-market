@@ -1,59 +1,38 @@
+from datetime import datetime
 from typing import Dict
 from uuid import UUID
 
-from sqlalchemy import select
-
 from market.db.orm import Session
-from market.db import model
+from market.db import crud
 from market.api import schemas
 from market.api.handlers import exceptions, tools
-
-
-async def sub(category_uuid: UUID, session: Session) -> (Dict, Dict):
-    """
-    Извлекает товары и подкатегории каталога собирает из них списки словарей.
-    :return: список полученных категорий.
-    """
-    subcategories = (await session.execute(
-        select(model.Category).
-        where(model.Category.parent_id == category_uuid)
-    )).scalars()
-    node_categories = [tools.category_to_response_dict(c) for c in subcategories]
-    offers = (await session.execute(
-        select(model.Offer).
-        where(model.Offer.parent_id == category_uuid)
-    )).scalars()
-    node_offers = [tools.offer_to_response_dict(o) for o in offers]
-    return node_offers, node_categories
 
 
 async def handle(unit_uuid: UUID) -> Dict:
     async with Session() as s:
         async with s.begin():
-            unit_type = (await s.execute(
-                select(model.ShopUnit.type).
-                where(model.ShopUnit.uuid == unit_uuid))).scalar()
-            if unit_type is None:
+            start_time = datetime.now()
+            unit = await crud.ShopUnit.get(unit_uuid, s)
+            if unit is None:
                 raise exceptions.ItemNotFound404(f'unit with "{unit_uuid}" does not exist')
-            if unit_type == schemas.ShopUnitType.OFFER:
-                offer = (await s.execute(
-                    select(model.Offer).
-                    where(model.Offer.uuid == unit_uuid)
-                )).scalar()
-                return tools.offer_to_response_dict(offer)
+            if unit.type == schemas.ShopUnitType.OFFER:
+                result = tools.offer_to_dict(await crud.Offer.get(unit_uuid, s))
+                print("node returning time: ", datetime.now() - start_time)
+                return result
             else:
-                category = (await s.execute(
-                    select(model.Category).
-                    where(model.Category.uuid == unit_uuid)
-                )).scalar()
-                root = tools.category_to_response_dict(category)
-                # Обход дерева категорий через стек.
-                stack = [(category.uuid, root)]
-                while stack:
-                    uuid, parent = stack.pop()
-                    offers, categories = await sub(uuid, s)
-                    parent['children'] = offers + categories
-                    parent['children'].sort(key=lambda x: x['date'], reverse=True)
-                    for c in categories:
-                        stack.append((c.get('id'), c))
+                nodes = {}
+                for line in await crud.get_nodes(unit_uuid, s):
+                    c_uuid, c_parent_id, c_name, c_date, c_total, c_number, *offer = line
+                    o_uuid, o_parent_id, o_name, o_date, o_price = offer
+                    if c_uuid not in nodes:
+                        nodes[c_uuid] = tools.category_row_to_dict(
+                            c_uuid, c_parent_id, c_name, c_date, c_total, c_number
+                        )
+                        if c_parent_id:
+                            nodes[c_parent_id]['children'].append(nodes[c_uuid])
+                    if o_uuid:
+                        nodes[c_uuid]['children'].append(
+                            tools.offer_row_to_dict(*offer))
+                root = nodes[unit_uuid]
+                print("nodes tree construct & returning time: ", datetime.now() - start_time)
                 return root
