@@ -7,6 +7,7 @@ import sys
 import urllib.error
 import urllib.parse
 import urllib.request
+from random import randint
 
 API_BASEURL = "http://127.0.0.1:8000"
 
@@ -185,9 +186,9 @@ def request(path, method="GET", data=None, json_response=False):
             res_data = res.read().decode("utf-8")
             if json_response:
                 res_data = json.loads(res_data)
-            return (res.getcode(), res_data)
+            return res.getcode(), res_data
     except urllib.error.HTTPError as e:
-        return (e.getcode(), None)
+        return e.getcode(), None
 
 
 def deep_sort_children(node):
@@ -199,11 +200,12 @@ def deep_sort_children(node):
 
 
 def print_diff(expected, response):
-    with open("expected.json", "w") as f:
+    _id = randint(1, 1000)
+    with open(f"expected{_id}.json", "w") as f:
         json.dump(expected, f, indent=2, ensure_ascii=False, sort_keys=True)
         f.write("\n")
 
-    with open("response.json", "w") as f:
+    with open(f"response{_id}.json", "w") as f:
         json.dump(response, f, indent=2, ensure_ascii=False, sort_keys=True)
         f.write("\n")
 
