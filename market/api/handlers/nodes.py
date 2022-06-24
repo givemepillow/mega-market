@@ -1,3 +1,4 @@
+from datetime import datetime
 from typing import Dict
 from uuid import UUID
 
@@ -30,6 +31,7 @@ async def sub(category_uuid: UUID, session: Session) -> (Dict, Dict):
 async def handle(unit_uuid: UUID) -> Dict:
     async with Session() as s:
         async with s.begin():
+            start_time = datetime.now()
             unit = await crud.ShopUnit.get(unit_uuid, s)
             if unit is None:
                 raise exceptions.ItemNotFound404(f'unit with "{unit_uuid}" does not exist')
@@ -54,4 +56,5 @@ async def handle(unit_uuid: UUID) -> Dict:
                     parent['children'].sort(key=lambda x: x['date'], reverse=True)
                     for c in categories:
                         stack.append((c.get('id'), c))
+                print(f"tree extract time: {datetime.now() - start_time}")
                 return root

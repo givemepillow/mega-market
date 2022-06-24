@@ -3,12 +3,14 @@ from sqlalchemy import (
     Enum,
     DateTime,
     ForeignKey,
-    Integer,
-    String
+    String,
+    Index,
+    BigInteger,
+    Integer
 )
 from sqlalchemy.dialects.postgresql import UUID
 
-from sqlalchemy.orm import relationship, declarative_base
+from sqlalchemy.orm import declarative_base
 
 from market.api import schemas
 
@@ -28,8 +30,10 @@ class Category(Base):
     parent_id = Column(UUID(as_uuid=True), ForeignKey("categories.uuid", ondelete="CASCADE"), nullable=True)
     name = Column(String(100), nullable=False)
     date = Column(DateTime(timezone=True), nullable=False)
-    total_price = Column(Integer, nullable=True)
-    offers_number = Column(Integer, nullable=False, default=0)
+    total_price = Column(BigInteger, nullable=True)
+    offers_number = Column(BigInteger, nullable=False, default=0)
+
+    __table_args__ = (Index('category_parent_id_idx', "parent_id"),)
 
 
 class Offer(Base):
@@ -38,7 +42,9 @@ class Offer(Base):
     parent_id = Column(UUID(as_uuid=True), ForeignKey("categories.uuid", ondelete="CASCADE"), nullable=True)
     name = Column(String(100), nullable=False)
     date = Column(DateTime(timezone=True), nullable=False)
-    price = Column(Integer, nullable=False)
+    price = Column(BigInteger, nullable=False)
+
+    __table_args__ = (Index('offer_parent_id_idx', "parent_id"),)
 
 
 class CategoryHistory(Base):
@@ -48,8 +54,8 @@ class CategoryHistory(Base):
     parent_id = Column(UUID(as_uuid=True), ForeignKey("categories.uuid", ondelete="CASCADE"), nullable=True)
     name = Column(String(100), nullable=False)
     date = Column(DateTime(timezone=True), nullable=False)
-    total_price = Column(Integer, nullable=True)
-    offers_number = Column(Integer, nullable=False, default=0)
+    total_price = Column(BigInteger, nullable=True)
+    offers_number = Column(BigInteger, nullable=False, default=0)
 
 
 class OffersHistory(Base):
@@ -59,4 +65,4 @@ class OffersHistory(Base):
     parent_id = Column(UUID(as_uuid=True), ForeignKey("categories.uuid", ondelete="CASCADE"), nullable=True)
     name = Column(String(100), nullable=False)
     date = Column(DateTime(timezone=True), nullable=False)
-    price = Column(Integer, nullable=False)
+    price = Column(BigInteger, nullable=False)
