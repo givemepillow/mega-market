@@ -14,7 +14,7 @@ def iso8601(date: datetime) -> str:
     return date.isoformat(timespec='milliseconds').replace('+00:00', 'Z')
 
 
-def category_to_response_dict(category: model.Category) -> Dict:
+def category_to_dict(category: model.Category) -> Dict:
     return dict(
         id=category.uuid,
         type=schemas.ShopUnitType.CATEGORY,
@@ -26,7 +26,7 @@ def category_to_response_dict(category: model.Category) -> Dict:
     )
 
 
-def offer_to_response_dict(offer: model.Offer) -> Dict:
+def offer_to_dict(offer: model.Offer) -> Dict:
     return dict(
         id=offer.uuid,
         name=offer.name,
@@ -34,6 +34,30 @@ def offer_to_response_dict(offer: model.Offer) -> Dict:
         type=schemas.ShopUnitType.OFFER,
         price=offer.price,
         date=iso8601(offer.date),
+        children=None
+    )
+
+
+def category_row_to_dict(uuid, parent_id, name, date, total, number) -> Dict:
+    return dict(
+        id=uuid,
+        type=schemas.ShopUnitType.CATEGORY,
+        name=name,
+        parentId=parent_id,
+        price=avg(total, number),
+        date=iso8601(date),
+        children=[]
+    )
+
+
+def offer_row_to_dict(uuid, parent_id, name, date, price) -> Dict:
+    return dict(
+        id=uuid,
+        type=schemas.ShopUnitType.OFFER,
+        name=name,
+        parentId=parent_id,
+        price=price,
+        date=iso8601(date),
         children=None
     )
 

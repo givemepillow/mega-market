@@ -169,6 +169,12 @@ class Offer:
         )).all()
         return parent_uuid, deleted_total
 
+    async def get(uuid: UUID, session: Session):
+        return (await session.execute(
+            select(model.Offer).
+            where(model.Offer.uuid == uuid)
+        )).scalar()
+
     async def get_for_24_hours(current_datetime: datetime, session: Session):
         return (await session.execute(
             select(model.Offer).
@@ -236,3 +242,24 @@ class History:
                     model.Category.offers_number
                 ).where(model.Category.uuid.in_(uuid_s))
             ))
+
+
+async def get_nodes(uuid: UUID, session: Session):
+    stmt = text(
+        """
+        with recursive r as (
+            select 0 as level,uuid, null::uuid as parent_id, name, date, total_price, offers_number
+            from categories
+            where uuid = :uuid
+            UNION ALL
+            select r.level + 1, c.uuid, c.parent_id, c.name, c.date, c.total_price, c.offers_number
+            from r
+            join categories c on c.parent_id = r.uuid
+        ) select 
+            r.uuid, r.parent_id, r.name, r.date, r.total_price, r.offers_number,
+            o.uuid, o.parent_id, o.name, o.date, o.price
+          from r
+            left join offers o on r.uuid = o.parent_id order by r.level, r.uuid=o.parent_id, o.date;
+        """
+    )
+    return (await session.execute(stmt, {'uuid': str(uuid)})).all()
