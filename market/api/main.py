@@ -5,13 +5,16 @@ from loguru import logger
 from market.api.endpoints import router
 from market.db.orm import Engine
 from market.db.model import Base
+import os
+
+from sqlalchemy.ext.asyncio import create_async_engine
+
+from alembic import command, config
+
 from market.api import reponses
 from market.api.handlers.exceptions import ValidationFailed400, ItemNotFound404
 
 app = FastAPI()
-app.include_router(router, tags=['MEGA MARKET API'])
-
-logger.remove()
 
 
 @app.exception_handler(RequestValidationError)
@@ -21,7 +24,7 @@ async def request_validation_exception_handler(request: Request, exc: RequestVal
     согласно описанию в openapi.yaml соответственно.
     :return: HTTP 400 BAD REQUEST: {"code": 400, "message": "Validation Failed"}
     """
-    logger.debug(f"{request.method} {request.url.path}: {exc}", )
+    logger.info(f"{request.method} {request.url.path}: {exc}", )
     return reponses.VALIDATION_FAILED
 
 
@@ -32,7 +35,7 @@ async def validation_exception_handler(request: Request, exc: ValidationFailed40
     согласно описанию в openapi.yaml.
     :return: HTTP 400 BAD REQUEST: {"code": 400, "message": "Validation Failed"}
     """
-    logger.debug(f"{request.method} {request.url.path}: {exc}", )
+    logger.info(f"{request.method} {request.url.path}: {exc}", )
     return reponses.VALIDATION_FAILED
 
 
@@ -43,12 +46,16 @@ async def not_found_exception_handler(request: Request, exc: ItemNotFound404):
     согласно описанию в openapi.yaml.
     :return: HTTP 404 NOT FOUND: {"code": 404, "message": "Item not found"}
     """
-    logger.debug(f"{request.method} {request.url.path}: {exc}", )
+    logger.info(f"{request.method} {request.url.path}: {exc}", )
     return reponses.ITEM_NOT_FOUND
 
 
-@app.on_event("startup")
-async def startup_event():
-    async with Engine.begin() as connection:
-        await connection.run_sync(Base.metadata.create_all)
-        await Engine.dispose()
+app.include_router(router, tags=['MEGA MARKET API'])
+
+logger.remove()
+logger.add(
+    'logfile.log',
+    rotation='1MB',
+    compression='zip',
+    format="{time:MMM DD HH:mm:ss}: {message}"
+)

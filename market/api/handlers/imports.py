@@ -1,4 +1,3 @@
-from datetime import datetime
 from typing import List, Dict, Set, Tuple
 from uuid import UUID
 
@@ -20,7 +19,6 @@ def prepare(unit_import: schemas.ShopUnitImportRequest) -> Tuple[List, List, Lis
     можно было проверить не изменяется ли тип уже существующего юнита.
     :raise ValidationFailed400: в случае невалидных данный выбрасывается исключение.
     """
-    print("quantity: ", len(unit_import.items))
     if len(unit_import.items) > MAX_ITEMS:
         raise ValidationFailed400(f"to many items: {len(unit_import.items)}")
     elif not unit_import.items:
@@ -87,7 +85,6 @@ async def handle(unit_import: schemas.ShopUnitImportRequest):
     categorise, offers, units, types = prepare(unit_import)
     async with Session() as s:
         async with s.begin():
-            start_time = datetime.now()
             try:
                 parents_uuids = await parents(units, uuids=types, session=s)
                 # Проверяем что не изменяется тип уже существующего юнита.
@@ -106,6 +103,6 @@ async def handle(unit_import: schemas.ShopUnitImportRequest):
                 if parents_uuids:
                     await crud.Category.update_statistics(parents_uuids, unit_import.update_date, s)
                     await crud.History.add_from_categories(parents_uuids, s)
-                print("import time: ", datetime.now() - start_time)
             except IntegrityError:
+                await s.rollback()
                 raise ValidationFailed400("db integrity error")
