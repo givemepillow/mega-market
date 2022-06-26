@@ -8,8 +8,6 @@ from market.api.handlers.exceptions import ValidationFailed400
 from market.db.orm import Session
 from market.db import crud
 
-MAX_ITEMS = 6500
-
 
 def prepare(unit_import: schemas.ShopUnitImportRequest) -> Tuple[List, List, List, Dict]:
     """
@@ -19,9 +17,7 @@ def prepare(unit_import: schemas.ShopUnitImportRequest) -> Tuple[List, List, Lis
     можно было проверить не изменяется ли тип уже существующего юнита.
     :raise ValidationFailed400: в случае невалидных данный выбрасывается исключение.
     """
-    if len(unit_import.items) > MAX_ITEMS:
-        raise ValidationFailed400(f"to many items: {len(unit_import.items)}")
-    elif not unit_import.items:
+    if not unit_import.items:
         raise ValidationFailed400("empty list of units")
     categorise, offers, units, types = [], [], [], {}
     for unit in unit_import.items:
