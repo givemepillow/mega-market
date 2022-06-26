@@ -7,7 +7,7 @@ from market.api.endpoints import router
 from market.api import reponses
 from market.api.handlers.exceptions import ValidationFailed400, ItemNotFound404
 
-app = FastAPI()
+app = FastAPI(openapi_url="")
 
 
 @app.exception_handler(RequestValidationError)

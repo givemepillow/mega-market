@@ -21,8 +21,10 @@ async def handle(unit_uuid: UUID) -> Dict:
                 c_u, c_parent, c_nm, c_dt, c_tm, c_num, o_u, o_parent, o_nm, o_dt, o_pr = line
                 if c_u not in nodes:
                     nodes[c_u] = tools.category_row_to_dict(c_u, c_parent, c_nm, c_dt, c_tm, c_num)
-                    if c_parent:
+                    try:
                         nodes[c_parent]['children'].append(nodes[c_u])
+                    except KeyError:
+                        pass
                 if o_u:
                     nodes[c_u]['children'].append(tools.offer_row_to_dict(o_u, o_parent, o_nm, o_dt, o_pr))
             return nodes[unit_uuid]

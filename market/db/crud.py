@@ -259,7 +259,7 @@ async def get_nodes(uuid: UUID, session: Session):
             r.uuid, r.parent_id, r.name, r.date, r.total_price, r.offers_number,
             o.uuid, o.parent_id, o.name, o.date, o.price
           from r
-            left join offers o on r.uuid = o.parent_id order by r.level, o.date;
+            left join offers o on r.uuid = o.parent_id order by r.level;
         """
     )
     return (await session.execute(stmt, {'uuid': str(uuid)})).all()
