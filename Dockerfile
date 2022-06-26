@@ -15,4 +15,3 @@ COPY ./market /app/market
 
 EXPOSE 80
 
-CMD ["uvicorn", "market.api.main:app", "--proxy-headers", "--host", "0.0.0.0", "--port", "80", "--log-level", "warning"]
