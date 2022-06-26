@@ -3,13 +3,6 @@ from fastapi.exceptions import RequestValidationError
 from loguru import logger
 
 from market.api.endpoints import router
-from market.db.orm import Engine
-from market.db.model import Base
-import os
-
-from sqlalchemy.ext.asyncio import create_async_engine
-
-from alembic import command, config
 
 from market.api import reponses
 from market.api.handlers.exceptions import ValidationFailed400, ItemNotFound404
@@ -55,7 +48,7 @@ app.include_router(router, tags=['MEGA MARKET API'])
 logger.remove()
 logger.add(
     'logfile.log',
-    rotation='1MB',
-    compression='zip',
-    format="{time:MMM DD HH:mm:ss}: {message}"
+    retention="3 days",
+    format="{time:MMM DD HH:mm:ss}: {message}",
+    enqueue=True
 )

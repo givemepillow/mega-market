@@ -1,10 +1,9 @@
 import requests
 
 import expected_trees
-from tests.unit.endpoints.difference import deep_sort_children
 
 
-def test_import_and_change_parent(imports_endpoint, nodes_endpoint):
+def test_import_and_change_parent(imports_endpoint, nodes_endpoint, sort):
     response = requests.post(
         imports_endpoint,
         json={
@@ -56,18 +55,18 @@ def test_import_and_change_parent(imports_endpoint, nodes_endpoint):
     response = requests.get(nodes_endpoint + '3fa85f64-6717-4562-b3fc-2c963f66afa6')
     assert response.status_code == 200
     response_data = response.json()
-    deep_sort_children(response_data)
-    deep_sort_children(expected_trees.test_import_and_change_parent)
+    sort(response_data)
+    sort(expected_trees.test_import_and_change_parent)
     assert response_data == expected_trees.test_import_and_change_parent
 
     response = requests.get(nodes_endpoint + '3fa85f64-7717-4562-b3fc-2c963f66afa6')
     response_data = response.json()
-    deep_sort_children(response_data)
-    deep_sort_children(expected_trees.test_import_and_change_parent_2)
+    sort(response_data)
+    sort(expected_trees.test_import_and_change_parent_2)
     assert response_data == expected_trees.test_import_and_change_parent_2
 
 
-def test_imports_updates_after_delete(imports_endpoint, delete_endpoint, nodes_endpoint):
+def test_imports_updates_after_delete(imports_endpoint, delete_endpoint, nodes_endpoint, sort):
     response = requests.post(
         imports_endpoint,
         json={
@@ -102,6 +101,6 @@ def test_imports_updates_after_delete(imports_endpoint, delete_endpoint, nodes_e
     response = requests.get(nodes_endpoint + '3fa85f64-7777-4562-b3fc-2c963f66afa6')
     assert response.status_code == 200
     response_data = response.json()
-    deep_sort_children(response_data)
-    deep_sort_children(expected_trees.test_imports_after_delete)
+    sort(response_data)
+    sort(expected_trees.test_imports_after_delete)
     assert response_data == expected_trees.test_imports_after_delete

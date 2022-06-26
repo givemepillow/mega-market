@@ -1,10 +1,6 @@
-import json
-
 import expected_trees
 
 import requests
-
-from tests.unit.endpoints.difference import *
 
 
 def test_import_and_nodes(imports_endpoint, delete_endpoint, nodes_endpoint):
@@ -71,7 +67,7 @@ def test_import_and_nodes(imports_endpoint, delete_endpoint, nodes_endpoint):
     assert response.status_code == 404
 
 
-def test_average_price(imports_endpoint, delete_endpoint, nodes_endpoint):
+def test_average_price(imports_endpoint, delete_endpoint, nodes_endpoint, sort):
     response = requests.post(
         imports_endpoint,
         json={
@@ -133,14 +129,14 @@ def test_average_price(imports_endpoint, delete_endpoint, nodes_endpoint):
         nodes_endpoint + "19a0a478-6a57-4f44-a2fe-0c21fb1746e9"
     )
     data = response.json()
-    deep_sort_children(data)
-    deep_sort_children(expected_trees.test_average_price)
+    sort(data)
+    sort(expected_trees.test_average_price)
     assert data == expected_trees.test_average_price
     # response = requests.delete(delete_endpoint + '19a0a478-6a57-4f44-a2fe-0c21fb1746e9')
     # assert response.status_code == 200
 
 
-def test_average_price_and_date_after_replace_category(imports_endpoint, delete_endpoint, nodes_endpoint):
+def test_average_price_and_date_after_replace_category(imports_endpoint, delete_endpoint, nodes_endpoint, sort):
     response = requests.post(
         imports_endpoint,
         json={
@@ -167,12 +163,12 @@ def test_average_price_and_date_after_replace_category(imports_endpoint, delete_
         nodes_endpoint + "19a0a478-6a57-4f44-a2fe-0c21fb1746e9"
     )
     response_data = response.json()
-    deep_sort_children(response_data)
-    deep_sort_children(expected_trees.test_average_price_and_date_after_replace_category)
+    sort(response_data)
+    sort(expected_trees.test_average_price_and_date_after_replace_category)
     assert response_data == expected_trees.test_average_price_and_date_after_replace_category
 
 
-def test_delete_and_update_offer_price(imports_endpoint, delete_endpoint, nodes_endpoint):
+def test_delete_and_update_offer_price(imports_endpoint, delete_endpoint, nodes_endpoint, sort):
     response = requests.post(
         imports_endpoint,
         json={
@@ -199,8 +195,8 @@ def test_delete_and_update_offer_price(imports_endpoint, delete_endpoint, nodes_
         nodes_endpoint + "19a0a478-6a57-4f44-a2fe-0c21fb1746e9"
     )
     response_data = response.json()
-    deep_sort_children(response_data)
-    deep_sort_children(expected_trees.test_delete_and_update_offer_price)
+    sort(response_data)
+    sort(expected_trees.test_delete_and_update_offer_price)
     assert response_data == expected_trees.test_delete_and_update_offer_price
     response = requests.delete(delete_endpoint + "19a0a478-6a57-4f44-a2fe-0c21fb1746e9")
     assert response.status_code == 200
